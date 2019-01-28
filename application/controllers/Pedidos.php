@@ -7,7 +7,7 @@ use Restserver\libraries\REST_Controller;
 class Pedidos extends REST_Controller {
 
     public function __construct(){
-        header("Access-Control-Allow-Methods: GET, POST");
+        header("Access-Control-Allow-Methods: GET, POST, DELETE");
         header("Access-Control-Allow-Headers: Content-Type, Content-Length, Accept-Encoding");
         header("Access-Control-Allow-Origin: *");
         
@@ -129,6 +129,73 @@ class Pedidos extends REST_Controller {
         $this->response(
             $respuesta
         );
+
+    }
+
+    public function borrar_pedidos_delete($token = "0", $id = "0", $orden_id = "0"){
+        $data = $this->post();
+
+        if ($token == "0" || $id == "0" || $orden_id == "0") {
+            $respuesta = array(
+                'error' => TRUE,
+                'mensaje' => 'Parámetros inválidos'
+            );
+            $this->response($respuesta, REST_Controller::HTTP_BAD_REQUEST);
+            return;
+        }
+        $condiciones = array(
+            'id' => $id,
+            'token' => $token
+        );
+        $this->db->where($condiciones);
+        $query = $this->db->get('login', $condiciones);
+        $existe = $query->row();
+
+        if(!$existe){
+            $respuesta = array(
+                'error' => TRUE,
+                'mensaje' => 'Usuario o token incorrectos'
+            );
+            $this->response($respuesta);
+            return;
+        }
+
+        // Verificar que la orden es de ese usuario
+        $this->db->reset_query();
+        $condiciones = array(
+            'id' => $orden_id,
+            'usuario_id' => $id
+        );
+        $this->db->where($condiciones);
+        $query = $this->db->get('ordenes');
+        $existe = $query->row();
+        if (!$existe) {
+            $respuesta = array(
+                'error' => TRUE,
+                'mensaje' => 'No se ha podido borrar'
+            );
+            $this->response($respuesta);
+            return;
+        } else {
+            $condiciones = array(
+                'id' => $orden_id
+            );
+            $this->db->delete('ordenes', $condiciones);
+    
+            $condiciones = array(
+                'orden_id' => $orden_id
+            );
+    
+            $this->db->delete('ordenes_detalle', $condiciones);
+    
+            $respuesta = array(
+                'error' => FALSE,
+                'mensaje' => 'Orden eliminada'
+            );
+            $this->response(
+                $respuesta
+            );
+        }
 
     }
 }
