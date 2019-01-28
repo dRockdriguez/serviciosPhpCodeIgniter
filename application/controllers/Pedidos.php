@@ -26,7 +26,7 @@ class Pedidos extends REST_Controller {
             $this->response($respuesta, REST_Controller::HTTP_BAD_REQUEST);
             return;
         }
-        
+
         if (!isset($data['items']) || strlen($data['items']) == 0) {
             $respuesta = array(
                 'error' => TRUE,
@@ -52,5 +52,32 @@ class Pedidos extends REST_Controller {
             $this->response($respuesta);
             return;
         }
+
+        // Usuario y token son correctos
+        $this->db->reset_query();
+        $insertar = array(
+            'usuario_id' => $id
+        );
+        $this->db->insert('ordenes', $insertar);
+        $orden_id = $this->db->insert_id();
+
+        //Crear detalle de orden
+        $this->db->reset_query();
+        $items = explode(',', $data['items']);
+
+        foreach($items as $producto_id) {
+            $data_insertar = array(
+                'producto_id' => $producto_id,
+                'orden_id' => $orden_id
+            );
+            $this->db->insert('ordenes_detalle', $data_insertar);
+        }
+
+        $respuesta = array(
+            'error' => FALSE,
+            'orden_id' => $orden_id
+        );
+
+        $this->response($respuesta);
     }
 }
