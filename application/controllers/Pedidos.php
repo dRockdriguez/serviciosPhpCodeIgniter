@@ -80,4 +80,55 @@ class Pedidos extends REST_Controller {
 
         $this->response($respuesta);
     }
+
+    public function obtener_pedidos_get($token = "0", $id = "0"){
+        $data = $this->post();
+
+        if ($token == "0" || $id == "0") {
+            $respuesta = array(
+                'error' => TRUE,
+                'mensaje' => 'Token o usuario inválido'
+            );
+            $this->response($respuesta, REST_Controller::HTTP_BAD_REQUEST);
+            return;
+        }
+
+        $condiciones = array(
+            'id' => $id,
+            'token' => $token
+        );
+        $this->db->where($condiciones);
+        $query = $this->db->get('login', $condiciones);
+        $existe = $query->row();
+
+        if(!$existe){
+            $respuesta = array(
+                'error' => TRUE,
+                'mensaje' => 'Usuario o token incorrectos'
+            );
+            $this->response($respuesta);
+            return;
+        }
+
+        $query = $this->db->query("SELECT * FROM ordenes WHERE usuario_id='$id'");
+        $ordenes = array();
+        foreach($query->result() as $row){
+            $query_detalle = $this->db->query("SELECT a.orden_id, b.* FROM ordenes_detalle a inner join productos b on a.producto_id = b.codigo WHERE orden_id = $row->id");
+            $orden = array(
+                'id' => $row->id,
+                'creado_en' => $row->creado_en,
+                'detalle' => $query_detalle->result()
+            );
+
+            array_push($ordenes, $orden);
+        }
+        $respuesta = array(
+            'error' => FALSE,
+            'ordenes' => $ordenes
+        );
+        $this->response(
+            $respuesta
+        );
+
+    }
 }
